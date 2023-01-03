@@ -2,6 +2,7 @@ use crate::types::*;
 
 const MAX : usize = 16;
 
+#[derive(Debug)]
 pub struct Stack {
     vector : Vec<address_long>
 }
@@ -12,7 +13,7 @@ impl Stack {
     }
 
     pub fn pop (&mut self) -> Option<address_long> {
-        return self.vector.pop()
+        self.vector.pop()
     }
 
     pub fn push (&mut self, data : address_long) {

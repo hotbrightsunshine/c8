@@ -1,7 +1,7 @@
 use std::collections::btree_map::Values;
 
 use crate::{types::data, err::C8Err};
-
+#[derive(Debug)]
 pub struct Memory {
     vector : Vec<data>
 }
