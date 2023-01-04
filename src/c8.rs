@@ -16,7 +16,7 @@ pub struct Chip {
 
 impl Chip {
     pub fn new() -> Chip {
-        Chip { pc: 0, i: 0, sp: 0, delay_t: Timer::new(), sound_t: Timer::new(), registers: Vec::new(), stack: Stack::new(), memory: Memory::new() }
+        Chip { pc: 0, i: 0, sp: 0, delay_t: Timer::new(), sound_t: Timer::new(), registers: Vec::with_capacity(16), stack: Stack::new(), memory: Memory::new() }
     }
 
     pub fn start(&mut self) -> () {
@@ -30,7 +30,7 @@ impl Chip {
         println!("\n================");
         println!("Chip-8 Debug Dump");
         println!("Program Counter: {}", self.pc);
-        println!("Instruction: {}", self.i);
+        println!("I (Memory addresses): {}", self.i);
         println!("Stack Pointer: {}", self.sp);
         println!("Delay Timer: {}", self.delay_t.get());
         println!("Sound Timer: {}", self.sound_t.get());
