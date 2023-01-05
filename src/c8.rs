@@ -57,7 +57,7 @@ impl Chip {
     }
 
     fn read2(&mut self) -> address_long {
-        print!("PC: {} \t", self.pc);
+        print!("PC: {:x?} \t", self.pc);
         let first = self.read();
         let second = self.read();
         let first = (first as u16) << 8;
@@ -71,6 +71,11 @@ impl Chip {
             0x00E0 => {self.screen.clear();}
             0x1000..=0x1FFF => {
                 self.pc = instr - 0x1000;
+            }
+            0x6000..=0x6FFF => {
+                let reg = ((instr & 0x0F00) >> 8) as u8;
+                let val = (instr & 0x00FF) as u8;
+                *self.registers.get_mut(reg as usize).unwrap() = val;
             }
             _ => {}
         }
