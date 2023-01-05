@@ -56,6 +56,10 @@ impl Screen {
             },
         }
     }   
+
+    pub fn clear(&mut self){
+        self.screen = [[false; WIDTH]; HEIGHT];
+    }
 }
 
 pub fn load(filepath: &str) -> Vec<data> {

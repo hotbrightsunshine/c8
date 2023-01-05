@@ -43,22 +43,37 @@ impl Chip {
     } 
 
     pub fn cycle(&mut self) {
-        self.read();
-        //self.dump();
+        // fetch
+        let read = self.read2();
+        // execute 
+        self.execute(read);
     }
 
     fn read(&mut self) -> data {
         let val = self.memory.get(self.pc as usize).unwrap();
-        println!("{}: {val}", self.pc);
+        //println!("{}: {val}", self.pc);
         self.pc = self.pc + 1;
         val as data
     }
 
     fn read2(&mut self) -> address_long {
+        print!("PC: {} \t", self.pc);
         let first = self.read();
         let second = self.read();
         let first = (first as u16) << 8;
-        first + second as u16
+        let combined = first + second as u16;
+        println!("{:x?}", combined);
+        combined
+    }
+
+    fn execute(&mut self, instr: address_long) {
+        match instr {
+            0x00E0 => {self.screen.clear();}
+            0x1000..=0x1FFF => {
+                self.pc = instr - 0x1000;
+            }
+            _ => {}
+        }
     }
 
     pub fn load(&mut self, filepath :&str) {
