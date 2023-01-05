@@ -18,7 +18,6 @@ fn main() {
     chip.start();
     while chip.screen.window.is_open() && !chip.screen.window.is_key_down(Key::Escape) {
         chip.cycle();
-        thread::sleep(Duration::from_millis(100));
-        chip.screen.window.update();
+        chip.screen.window.update_with_buffer(&chip.screen.to_buffer(), io::WIDTH, io::HEIGHT).unwrap();
     }
 }

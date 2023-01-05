@@ -19,7 +19,7 @@ impl Screen {
         window_options.scale = Scale::X16;
 
         let mut screen = Screen {
-            screen: [[false; WIDTH]; HEIGHT],
+            screen: [[true; WIDTH]; HEIGHT],
             window: Window::new(
                 "Test - ESC to exit",
                 WIDTH,
@@ -59,6 +59,37 @@ impl Screen {
 
     pub fn clear(&mut self){
         self.screen = [[false; WIDTH]; HEIGHT];
+    }
+
+    pub fn draw(&mut self, x: usize, y: usize, sprite: &[data]) {
+        let sprite_cols : Vec<[bool; 8]> = sprite.iter().map(|x| -> [bool; 8] {Screen::u8_to_bools(x)}).collect();
+        
+        for i in 0..sprite.len() {
+            println!("{}, {}", i+y, x);
+            let col = &mut self.screen[i+y];
+            let to_paint = &mut col[x..x+8];
+            for (k, val) in (*to_paint).iter_mut().enumerate(){
+                *val = *sprite_cols.get(i).unwrap().get(k).unwrap();
+            }
+        }
+    }
+
+    fn u8_to_bools(val: &u8) -> [bool; 8] {
+        std::array::from_fn(|i| 1 << (7 - i) & val != 0) 
+    }
+
+    pub fn to_buffer(&self) -> Vec<u32> { // TODO
+        let mut vec = Vec::<u32>::new();
+        for row in self.screen {
+            for val in row {
+                if val {
+                    vec.push(0xFFFFFF);
+                } else {
+                    vec.push(0);
+                }
+            }
+        }
+        vec
     }
 }
 
