@@ -6,11 +6,9 @@ pub mod err;
 pub mod timer;
 pub mod io;
 
-use std::{time::Duration, thread, str::SplitAsciiWhitespace};
-
 use c8::Chip;
-use io::Screen;
-use minifb::{Window, WindowOptions, Key, Scale};
+//use io::Screen;
+use minifb::{Key};
 
 fn main() {
     let mut chip = Chip::new();

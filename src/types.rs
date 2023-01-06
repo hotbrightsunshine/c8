@@ -1,3 +1,3 @@
-pub type address_long = u16;
-pub type address_short = u8;
-pub type data = u8;
+pub type AddressLong = u16;
+pub type AddressShort = u8;
+pub type Data = u8;

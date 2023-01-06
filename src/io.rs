@@ -2,7 +2,7 @@ use std::{error::Error, thread, time::Duration, fmt::format};
 
 use minifb::{Window, Scale, WindowOptions, Key};
 
-use crate::types::data;
+use crate::types::Data;
 
 pub const HEIGHT : usize = 32;
 pub const WIDTH : usize = 64;
@@ -24,7 +24,7 @@ impl Screen {
                 "Test - ESC to exit",
                 WIDTH,
                 HEIGHT,
-                window_options,
+                WindowOptions { scale: Scale::X16, ..Default::default() },
                 )
                 .unwrap_or_else(|e| {
                 panic!("{}", e);
@@ -49,10 +49,10 @@ impl Screen {
         match self.get_mut(x, y) {
             Some(x) => {
                 *x = value;
-                return Ok(());
+                Ok(())
             },
             None => {
-                return Err(());
+                Err(())
             },
         }
     }   
@@ -61,7 +61,7 @@ impl Screen {
         self.screen = [[false; WIDTH]; HEIGHT];
     }
 
-    pub fn draw(&mut self, x: usize, y: usize, sprite: &[data]) {
+    pub fn draw(&mut self, x: usize, y: usize, sprite: &[Data]) {
         let sprite_cols : Vec<[bool; 8]> = sprite.iter().map(|x| -> [bool; 8] {Screen::u8_to_bools(x)}).collect();
         
         for i in 0..sprite.len() {
@@ -93,6 +93,6 @@ impl Screen {
     }
 }
 
-pub fn load(filepath: &str) -> Vec<data> {
-    std::fs::read(filepath).expect(&format!("unable to read {filepath}"))
+pub fn load(filepath: &str) -> Vec<Data> {
+    std::fs::read(filepath).unwrap_or_else(|_| panic!("unable to read {filepath}"))
 }

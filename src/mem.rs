@@ -1,9 +1,7 @@
-use std::collections::btree_map::Values;
-
-use crate::{types::data, err::C8Err};
+use crate::{types::Data, err::C8Err};
 #[derive(Debug)]
 pub struct Memory {
-    pub vector : Vec<data>
+    pub vector : Vec<Data>
 }
 
 impl Memory {
@@ -13,18 +11,18 @@ impl Memory {
         }
     }
 
-    pub fn get(&self, index: usize) -> Result<data, C8Err> {
+    pub fn get(&self, index: usize) -> Result<Data, C8Err> {
         if index < 512 {
-            Err(C8Err::MEMORY_UNACCESSIBLE)
+            Err(C8Err::MemoryUnaccessible)
         } else {
             match self.vector.get(index) {
                 Some(value) => Ok(*value),
-                None => Err(C8Err::MEMORY_UNACCESSIBLE)
+                None => Err(C8Err::MemoryUnaccessible)
             }
         }
     }
 
-    pub fn write(&mut self, v:data, index:usize) {
+    pub fn write(&mut self, v:Data, index:usize) {
         if index < 512 {
             panic!("mem unaccessible")
         } else {

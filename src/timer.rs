@@ -1,9 +1,8 @@
-use std::{thread, time::Duration, sync::{Mutex, Arc, atomic::AtomicU8}, fmt::Display};
+use std::{thread, time::Duration, sync::{Arc, atomic::AtomicU8}};
 use std::sync::atomic::Ordering::Relaxed;
 
-use crate::types::data;
+use crate::types::Data;
 
-const FREQUENCY : u64 = 60;
 const PERIOD : u64 = 17;
 
 pub struct Timer {
@@ -15,7 +14,7 @@ impl<> Timer {
         Timer { value: Arc::new(AtomicU8::new(0)) }
     }
 
-    pub fn set(&self, value: data) {
+    pub fn set(&self, value: Data) {
         self.value.store(value, Relaxed);
     }
 

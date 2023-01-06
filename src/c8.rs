@@ -1,16 +1,16 @@
 use crate::io::{Screen, self};
-use crate::mem::{Memory, self};
+use crate::mem::{Memory};
 
 use crate::stack::Stack;
 use crate::{types::*, timer::Timer};
 
 pub struct Chip {
-        pc          : address_long, // current address
-        i           : address_long, // stores memory addresses
-        sp          : address_short, // stack pointer
+        pc          : AddressLong, // current address
+        i           : AddressLong, // stores memory addresses
+        sp          : AddressShort, // stack pointer
         delay_t     : Timer,
         sound_t     : Timer,
-        registers   : [data; 16],
+        registers   : [Data; 16],
         stack       : Stack,
         memory      : Memory,
     pub screen      : Screen
@@ -21,7 +21,7 @@ impl Chip {
         Chip { pc: 512, i: 0, sp: 0, delay_t: Timer::new(), sound_t: Timer::new(), registers: [0; 16], stack: Stack::new(), memory: Memory::new(), screen: Screen::new() }
     }
 
-    pub fn start(&mut self) -> () {
+    pub fn start(&mut self) {
         self.delay_t.set(100);
         self.sound_t.set(100);
         self.delay_t.start();
@@ -49,14 +49,14 @@ impl Chip {
         self.execute(read);
     }
 
-    fn read(&mut self) -> data {
+    fn read(&mut self) -> Data {
         let val = self.memory.get(self.pc as usize).unwrap();
         //println!("{}: {val}", self.pc);
-        self.pc = self.pc + 1;
-        val as data
+        self.pc += 1;
+        val as Data
     }
 
-    fn read2(&mut self) -> address_long {
+    fn read2(&mut self) -> AddressLong {
         print!("PC: {:x?} \t", self.pc);
         let first = self.read();
         let second = self.read();
@@ -66,11 +66,11 @@ impl Chip {
         combined
     }
 
-    fn read_sprite(from: address_long, mem_vec: &Memory, amount: data) -> &[u8] {
+    fn read_sprite(from: AddressLong, mem_vec: &Memory, amount: Data) -> &[u8] {
         &mem_vec.vector[(from as usize) .. ((from+(amount as u16)) as usize)]
     }
 
-    fn execute(&mut self, instr: address_long) {
+    fn execute(&mut self, instr: AddressLong) {
         match instr {
             // Clear screen 
             0x00E0 => {self.screen.clear();}
