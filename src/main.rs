@@ -12,7 +12,7 @@ use minifb::{Key};
 
 fn main() {
     let mut chip = Chip::new();
-    chip.load("run/ibm.ch8");
+    chip.load("run/chip8-test-suitewwww.ch8");
     chip.start();
     while chip.screen.window.is_open() && !chip.screen.window.is_key_down(Key::Escape) {
         chip.cycle();

@@ -91,8 +91,83 @@ impl Screen {
         }
         vec
     }
+
+    pub fn wait_for_key(&self) -> u8 {
+        // todo!
+        
+        loop {
+            let vec = self.window.get_keys();
+            for key in [
+                Key::Key1,
+                Key::Key2,
+                Key::Key3,
+                Key::Key4,
+                Key::Q,
+                Key::W,
+                Key::E,
+                Key::R,
+                Key::A,
+                Key::S,
+                Key::D,
+                Key::F,
+                Key::Z,
+                Key::X,
+                Key::C,
+                Key::V 
+            ] {
+                if vec.contains(&key) {
+                    return key_to_u8(key);
+                }
+            }
+        }
+    }
 }
 
 pub fn load(filepath: &str) -> Vec<Data> {
     std::fs::read(filepath).unwrap_or_else(|_| panic!("unable to read {filepath}"))
 }
+
+pub fn u8_to_key(key: u8) -> minifb::Key {
+    match key {
+        0x1 => Key::Key1,
+        0x2 => Key::Key2,
+        0x3 => Key::Key3,
+        0xC => Key::Key4,
+        0x4 => Key::Q,
+        0x5 => Key::W,
+        0x6 => Key::E,
+        0xD => Key::R,
+        0x7 => Key::A,
+        0x8 => Key::S,
+        0x9 => Key::D,
+        0xE => Key::F,
+        0xA => Key::Z,
+        0x0 => Key::X,
+        0xB => Key::C,
+        0xF => Key::V,
+        _ => panic!("unknown key!")
+    }
+}
+
+pub fn key_to_u8(key: minifb::Key) -> u8 {
+    match key {
+        Key::Key1 => 0x1, 
+        Key::Key2 => 0x2, 
+        Key::Key3 => 0x3, 
+        Key::Key4 => 0xC, 
+        Key::Q => 0x4, 
+        Key::W => 0x5, 
+        Key::E => 0x6, 
+        Key::R => 0xD, 
+        Key::A => 0x7, 
+        Key::S => 0x8, 
+        Key::D => 0x9, 
+        Key::F => 0xE, 
+        Key::Z => 0xA, 
+        Key::X => 0x0, 
+        Key::C => 0xB, 
+        Key::V => 0xF, 
+        _ => panic!("unknown key!")
+    }
+}
+

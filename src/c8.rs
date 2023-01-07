@@ -78,18 +78,7 @@ impl Chip {
             0x1000..=0x1FFF => {
                 self.pc = instr - 0x1000;
             }
-            // Set Register
-            0x6000..=0x6FFF => {
-                let reg = ((instr & 0x0F00) >> 8) as u8;
-                let val = (instr & 0x00FF) as u8;
-                *self.registers.get_mut(reg as usize).unwrap() = val;
-            }
-            // Add register
-            0x7000..=0x7FFF => {
-                let reg = ((instr & 0x0F00) >> 8) as u8;
-                let val = (instr & 0x00FF) as u8;
-                *self.registers.get_mut(reg as usize).unwrap() += val;
-            }
+
             // Set register I
             0xA000..=0xAFFF => {
                 self.i = instr & 0x0FFF;
@@ -103,7 +92,284 @@ impl Chip {
                 println!("x: {:x?}, y: {:x?}, amount: {}, sprite: {:x?}", x, y, nib, sprite);
                 self.screen.draw(*x as usize, *y as usize, sprite);
             }
-            _ => {}
+            // Return
+            0x00EE => {
+                println!("RETURN CALLED");
+                self.dump();
+                let val = self.stack.pop().expect("unable to pop values from stack");
+                self.pc = val;
+                self.dump();
+            }
+            // Call
+            0x2000..=0x2FFF => {
+                let val = instr - 0x2000;
+                self.stack.push(self.pc);
+                self.pc = val;
+            }
+            // Skip next instruction if Vx = kk.
+            0x3000..=0x3FFF => {
+                println!("SE CALLED");
+                let instr = instr - 0x3000;
+                let reg = (instr & 0x0F00) >> 8;
+                let val = (instr & 0x00FF) as u8;
+                if *self.registers.get(reg as usize).unwrap() == val {
+                    self.pc += 2;
+                }
+            }
+            // Skip next instruction if Vx != kk.
+            0x4000..=0x4FFF => {
+                println!("SNE CALLED");
+                self.dump();
+                let instr = instr - 0x3000;
+                let reg = (instr & 0x0F00) >> 8;
+                let val = (instr & 0x00FF) as u8;
+                if *self.registers.get(reg as usize).unwrap() != val {
+                    self.pc += 2;
+                }
+                self.dump();
+            }
+            // Skip next instruction if Vx = Vy.
+            0x5000..=0x5FF0 => {
+                if instr & 0x000F != 0 { panic!("SE Vx, Vy (0x5xy0) NOT RECOGNIZED") }
+                let reg1 = (instr & 0x0F00) >> 8;
+                let reg2 = (instr & 0x00F0) >> 4;
+                if reg1 == reg2 {
+                    self.pc += 2;
+                }
+            }
+            // Set Register
+            0x6000..=0x6FFF => {
+                let reg = ((instr & 0x0F00) >> 8) as u8;
+                let val = (instr & 0x00FF) as u8;
+                *self.registers.get_mut(reg as usize).unwrap() = val;
+            }
+            // Add register
+            0x7000..=0x7FFF => {
+                let reg = ((instr & 0x0F00) >> 8) as u8;
+                let val = (instr & 0x00FF) as u8;
+                *self.registers.get_mut(reg as usize).unwrap() += val;
+            }
+            // 0x8000 INSTRUCTIONS
+            0x8000..=0x8FFF => {
+                let regx = (instr & 0x0F00) >> 8;
+                let regy = (instr & 0x00F0) >> 4;
+                let param = (instr & 0x000F);
+                match param {
+                    0 => {
+                        //Stores the value of register Vy in register Vx.
+                        * self.registers.get_mut(regx as usize).unwrap() = 
+                            * self.registers.get(regy as usize).unwrap();
+                    }
+                    1 => {
+                        // Performs a bitwise OR on the values of Vx and Vy, 
+                        // then stores the result in Vx. 
+
+                        // clones it to prevent borrow checker errors
+                        let regxval = *self.registers.get(regx as usize).unwrap();
+                        let regyval = *self.registers.get(regy as usize).unwrap();
+                        *self.registers.get_mut(regx as usize).unwrap() = 
+                            regxval | regyval;
+                    }
+                    2 => {
+                        // Performs a bitwise AND on the values of Vx and Vy, 
+                        // then stores the result in Vx. 
+
+                        // clones it to prevent borrow checker errors
+                        let regxval = *self.registers.get(regx as usize).unwrap();
+                        let regyval = *self.registers.get(regy as usize).unwrap();
+                        *self.registers.get_mut(regx as usize).unwrap() = 
+                            regxval & regyval;
+                    }
+                    3 => {
+                        // Performs a bitwise AND on the values of Vx and Vy, 
+                        // then stores the result in Vx. 
+
+                        // clones it to prevent borrow checker errors
+                        let regxval = *self.registers.get(regx as usize).unwrap();
+                        let regyval = *self.registers.get(regy as usize).unwrap();
+                        *self.registers.get_mut(regx as usize).unwrap() = 
+                            regxval ^ regyval;
+                    }
+                    4 => {
+                        // Set Vx = Vx + Vy, set VF = carry.
+                        // The values of Vx and Vy are added together.
+                        let regxval = *self.registers.get(regx as usize).unwrap() as usize;
+                        let regyval = *self.registers.get(regy as usize).unwrap() as usize;
+                        
+                        let result = regxval + regyval;
+                        if result > 0xFF {
+                            *self.registers.get_mut(regx as usize).unwrap() = result as Data;
+                            *self.registers.get_mut(0xF as usize).unwrap() = (result - 0xFF) as Data;
+                        } else {
+                            *self.registers.get_mut(regx as usize).unwrap() = result as Data;
+                        }
+                    }
+                    5 => {
+                        // If Vx > Vy, then VF is set to 1, otherwise 0. 
+                        // Then Vy is subtracted from Vx, and the results stored in Vx.
+                        let regxval = *self.registers.get(regx as usize).unwrap() as usize;
+                        let regyval = *self.registers.get(regy as usize).unwrap() as usize;
+                        
+                        let result = if regxval > regyval {
+                            *self.registers.get_mut(0xF as usize).unwrap() = 1 as Data;
+                            (regxval - regyval) as Data
+                        } else {
+                            *self.registers.get_mut(0xF as usize).unwrap() = 0 as Data;
+                            0 as Data
+                        };
+
+                        *self.registers.get_mut(regx as usize).unwrap() = result;
+                    }
+                    7 => {
+                        //Set Vx = Vy - Vx, set VF = NOT borrow.
+                        //If Vy > Vx, then VF is set to 1, otherwise 0. Then Vx is subtracted from Vy, and the results stored in Vx.
+                        let regxval = *self.registers.get(regx as usize).unwrap() as usize;
+                        let regyval = *self.registers.get(regy as usize).unwrap() as usize;
+                        
+                        let result = if regyval > regxval {
+                            *self.registers.get_mut(0xF as usize).unwrap() = 1 as Data;
+                            (regyval - regxval) as Data
+                        } else {
+                            *self.registers.get_mut(0xF as usize).unwrap() = 0 as Data;
+                            0 as Data
+                        };
+
+                        *self.registers.get_mut(regx as usize).unwrap() = result;
+                    }
+                    6 => {
+                        // Set Vx = Vx SHR 1.
+                        // If the least-significant bit of Vx is 1, 
+                        // then VF is set to 1, otherwise 0. Then Vx is divided by 2.
+                        let regxval = *self.registers.get(regx as usize).unwrap() as usize;
+                        if regxval % 2 == 1 {
+                            *self.registers.get_mut(0xF as usize).unwrap() = 1 as Data;
+                        } else {
+                            *self.registers.get_mut(0xF as usize).unwrap() = 0 as Data;
+                        }
+                        *self.registers.get_mut(regx as usize).unwrap() = (regxval / 2) as Data;
+                    }
+                    0xE => {
+                        // Set Vx = Vx SHL 1.
+                        // If the most-significant bit of Vx is 1, then VF is set to 1, otherwise to 0. 
+                        // Then Vx is multiplied by 2.
+                        let regxval = *self.registers.get(regx as usize).unwrap() as usize;
+                        if (regxval >> 7) == 0b1  {
+                            *self.registers.get_mut(0xF as usize).unwrap() = 1 as Data;
+                        } else {
+                            *self.registers.get_mut(0xF as usize).unwrap() = 0 as Data;
+                        }
+                        *self.registers.get_mut(regx as usize).unwrap() = (regxval * 2) as Data;
+                    } 
+                    _ => {panic!("no such instruction!");}
+                }
+            }
+            0x9000..=0x9FFF => {
+                // Skip next instruction if Vx != Vy.
+                // The values of Vx and Vy are compared, and if they are not equal, 
+                // the program counter is increased by 2.
+                if instr & 0x000F != 0 { panic!("SNE Vx, Vy (0x9xy0) NOT RECOGNIZED") }
+                let reg1 = (instr & 0x0F00) >> 8;
+                let reg2 = (instr & 0x00F0) >> 4;
+                if reg1 != reg2 {
+                    self.pc += 2;
+                }
+            }
+            0xB000..=0xBFFF => {
+                // Jump to location nnn + V0.
+                //The program counter is set to nnn plus the value of V0.
+                let val_v0 = *self.registers.get(0).unwrap();
+                self.pc = (instr & 0x0FFF) + (val_v0 as u16);
+            }
+            0xC000..=0xCFFF => {
+                // Set Vx = random byte AND kk.
+                //The interpreter generates a random number from 0 to 255, which is then ANDed with the value kk. 
+                //The results are stored in Vx. 
+                //See instruction 8xy2 for more information on AND.
+
+                let rand : u8 = rand::random();
+                let reg = (instr & 0x0F00) >> 8 as Data;
+                let kk = (instr & 0x00FF) as Data;
+                *self.registers.get_mut(reg as usize).unwrap() = rand & kk;
+            }
+            0xE0A1..=0xEFA1 => {
+                if instr & 0xF0FF != 0xE0A1 { panic!("no such instruction (0xExA1)")}
+                let regx = ((instr & 0x0F00) >> 8) as Data;
+                let key_wanted = *self.registers.get(regx as usize).unwrap();
+                if !self.screen.window.is_key_down(io::u8_to_key(key_wanted)) {
+                    self.pc += 2;
+                }
+            }
+            0xE09E..=0xEF9E => {
+                /*
+                Skip next instruction if key with the value of Vx is pressed.
+                Checks the keyboard, and if the key corresponding to the value of Vx is currently in the down position, PC is increased by 2. 
+                */
+                if instr & 0xF0FF != 0xE09E { panic!("no such instruction (0xEx9E)")}
+                let regx = ((instr & 0x0F00) >> 8) as Data;
+                let key_wanted = *self.registers.get(regx as usize).unwrap();
+                if self.screen.window.is_key_down(io::u8_to_key(key_wanted)) {
+                    self.pc += 2;
+                }
+            }  
+
+            0xF029..=0xFF29 => {}
+            0xF033..=0xFF33 => {}
+            0xF055..=0xFF55 => {}
+            0xF065..=0xFF65 => {}
+
+            0xF00A..=0xFF0A => {
+                /*
+                Fx0A - LD Vx, K
+                Wait for a key press, store the value of the key in Vx.
+                All execution stops until a key is pressed, then the value of that key is stored in Vx.
+                 */
+                if instr & 0xF0FF != 0xF00A { panic!("no such instruction (0xFx0A)")}
+                let reg = (instr & 0x0F00) >> 8;
+                let key = self.screen.wait_for_key();
+                *self.registers.get_mut(reg as usize).unwrap() = key
+            }
+            0xF015..=0xFF15 => {
+                /*
+                Fx15 - LD DT, Vx
+                Set delay timer = Vx.
+                DT is set equal to the value of Vx.
+               */
+                if instr & 0xF0FF != 0xF015 { panic!("no such instruction (0xFx15)")}
+                let reg = (instr & 0x0F00) >> 8;
+                self.delay_t.set(
+                    *self.registers.get(reg as usize).unwrap()
+                )
+            }
+            0xF018..=0xFF18 => {
+                /*
+                Fx18 - LD ST, Vx
+                Set sound timer = Vx.
+                ST is set equal to the value of Vx. */
+                if instr & 0xF0FF != 0xF018 { panic!("no such instruction (0xFx18)")}
+                let reg = (instr & 0x0F00) >> 8;
+                self.sound_t.set(
+                    *self.registers.get(reg as usize).unwrap()
+                )
+            }
+            0xF01E..=0xFF1E => {
+                /*
+                Fx1E - ADD I, Vx
+                Set I = I + Vx.
+                The values of I and Vx are added, and the results are stored in I. */
+                let reg =  (instr & 0x0F00) >> 8;
+                self.i += *self.registers.get(reg as usize).unwrap() as AddressLong;
+            }
+            0xF007..=0xFF07 => {
+                /*Set Vx = delay timer value.
+                The value of DT is placed into Vx. */
+                if instr & 0xF0FF != 0xF007 { panic!("no such instruction (0xFx07)")}
+                let regx = ((instr & 0x0F00) >> 8) as Data;
+
+                self.delay_t.set(
+                    *self.registers.get(regx as usize).unwrap() as Data
+                )
+            }
+            _ => {panic!("no such instruction. undefined.")}
         }
     }
 
