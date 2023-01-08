@@ -379,4 +379,6 @@ impl Chip {
             self.memory.write(*val, i+512);
         }
     }
+
 }
+

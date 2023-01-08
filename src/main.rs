@@ -5,6 +5,7 @@ pub mod stack;
 pub mod err;
 pub mod timer;
 pub mod io;
+mod decoder;
 
 use c8::Chip;
 //use io::Screen;
