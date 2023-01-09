@@ -112,7 +112,7 @@ pub fn decode(instr : u16) -> Instruction {
     // A struct to do so might be needed in the near future!
     // Deconstructing 
     // Imagine this as 
-    
+
     //   O      [   0,     HEAD
     //   |          1,     NECK
     //  /|\
@@ -139,13 +139,9 @@ pub fn decode(instr : u16) -> Instruction {
 
         ( 0x2000, _     ) => Instruction::Call { location: lower },
 
-        ( 0x3000, lower ) => {
-            Instruction::SkipEqualRegisterBytes { register_index: neck, bytes: bodytail }
-        }
+        ( 0x3000, _ ) => Instruction::SkipEqualRegisterBytes { register_index: neck, bytes: bodytail },
 
-        ( 0x4000, lower ) => {
-            Instruction::SkipNotEqualRegisterBytes { register_index: neck as u8, bytes: bodytail }
-        }
+        ( 0x4000, _ ) => Instruction::SkipNotEqualRegisterBytes { register_index: neck as u8, bytes: bodytail },
 
         ( 0x5000, _) => {
             if tail != 0 {
@@ -153,30 +149,55 @@ pub fn decode(instr : u16) -> Instruction {
             } else {
                 Instruction::SkipEqualRegisterRegister { register_x: neck, register_y: body }
             }
-        }
+        },
 
-        ( 0x6000, lower ) => {
-            let (register, value) = (lower & 0xF00, lower & 0xFF);
-            Instruction::SetRegisterToBytes { register: (register >> 8) as u8, bytes: value as u8 }
-        }
+        ( 0x6000, _ ) => Instruction::SetRegisterToBytes { register: neck, bytes: bodytail },
 
-        (0x7000, lower ) => {
-            let (register, value) = (lower & 0xF00, lower & 0xFF);
-            Instruction::AddBytesToRegister { register: (register >> 8) as u8, bytes: value as u8 }
-        }
+        (0x7000, _ ) => Instruction::AddBytesToRegister { register: neck, bytes: bodytail },
 
-        (0x8000, lower ) => {
-            match ((lower & 0xF00 >> 8) as u8, (lower & 0xF0 >> 4) as u8, (lower & 0xF) as u8) {
-                (regx, regy, 0) => {
-                    Instruction::SetRegisterToRegister { register_x: regx, register_y: regy }
-                }
+        (0x8000, _ ) => {
+            match tail {
+                0 => Instruction::SetRegisterToRegister { register_x: neck, register_y: body },
+                1 => Instruction::BitwiseOr { register_x: neck, register_y: body },
+                2 => Instruction::BitwiseAnd { register_x: neck, register_y: body },
+                3 => Instruction::BitwiseXor { register_x: neck, register_y: body },
+                4 => Instruction::AddRegisterToRegister { register_x: neck, register_y: body },
+                5 => Instruction::SubtractRegisterToRegister { register_x: neck, register_y: body },
+                6 => Instruction::LeastSignificantBit { register: neck },
+                7 => Instruction::SubtractInversed { register_x: neck, register_y: body },
+                0xE => Instruction::MostSignificantBit { register: neck },
+                _ => Instruction::Invalid
+            }
+        },
 
-                (regx, regy, 1) => {
-                    Instruction::BitwiseOr { register_x: regx, register_y: regy }
-                }
+        (0x9000, _ ) => {
+            if tail != 0 {
+                Instruction::Invalid
+            } else {
+                Instruction::SkipNotEqualRegisterRegister { register_x: neck, register_y: body }
+            }
+        },
 
-                (reg)
-                ()
+        (0xA000, lower ) =>  Instruction::SetI { value: lower },
+        (0xB000, lower) => Instruction::JumpToLocationPlusZeroRegister { address: lower },
+        (0xC000, _ ) => Instruction::Random { register: neck, value: bodytail },
+        (0xD000, _ ) => Instruction::Display { register_x: neck, register_y: body, nibble: tail },
+        (0xE000, _ ) => {
+            match bodytail {
+                0x9E => Instruction::SkipIfKeyIsPressed { register: neck },
+                0xA1 => Instruction::SkipIfKeyIsNotPressed { register: neck },
+                _ => Instruction::Invalid
+            }
+        },
+        (0xF000, _ ) => {
+            match bodytail {
+                0x07 => Instruction::SetRegisterToDelayTimer { register: neck },
+                0x0A => Instruction::WaitForKey { register: neck },
+                0x15 => Instruction::SetDelayTimer { register: neck },
+                0x18 => Instruction::SetSoundTimer { register: neck },
+                0x1E => Instruction::AddRegisterToI { register: neck },
+                0x29 => Instruction::SetIToLocationOfSprite { register: neck },
+                
                 _ => Instruction::Invalid
             }
         }
