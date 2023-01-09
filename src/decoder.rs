@@ -31,7 +31,7 @@ pub enum Instruction {
     AddBytesToRegister { register: Data, bytes: Data },
 
     /// 8xy0 - LD Vx, Vy
-    LoadRegisterToRegister { from_register: Data, to_register: Data },
+    SetRegisterToRegister { register_x: Data, register_y: Data },
 
     /// 8xy1 - OR Vx, Vy
     BitwiseOr { register_x: Data, register_y: Data },
@@ -106,27 +106,80 @@ pub enum Instruction {
     Invalid
 }
 
-pub fn subdivide_instr(val: AddressLong) -> (AddressLong, AddressLong, AddressLong, AddressLong) {
-    (
-        val & 0xF000,
-        val & 0x0F00,
-        val & 0x00F0,
-        val & 0x000F
-    )
-}
-
 pub fn decode(instr : u16) -> Instruction {
-    let instr = subdivide_instr(instr);
-    match instr {
-        ( 0x0000, 0x0000, 0x00E0, 0x0000 ) => Instruction::Cls,
-        ( 0x0000, 0x0000, 0x00E0, 0x000E ) => Instruction::Ret,
-        ( 0x1000, _,      _,      _      ) => Instruction::Jump { location: instr.1 + instr.2 + instr.3 },
-        ( 0x2000, _,      _,      _      ) => Instruction::Call { location: instr.1 + instr.2 + instr.3 },
-        ( 0x3000, _,      _,      _      ) => Instruction::SkipEqualRegisterBytes { register_index: (instr.1 >> 8) as Data, bytes: (instr.2 + instr.3) as Data },
-        ( 0x4000, _,      _,      _      ) => Instruction::SkipNotEqualRegisterBytes { register_index: (instr.1 >> 8) as Data, bytes: (instr.2 + instr.3) as Data },
-        ( 0x5000, _,      _,      0x0000 ) => Instruction::SkipEqualRegisterRegister { register_x: (instr.1 >> 8) as Data, register_y: (instr.2 >> 4) as Data },
-        ( 0x6000, _,      _,      _      ) => Instruction::SetRegisterToBytes { register: (instr.1 >> 8) as Data, bytes: (instr.2 + instr.3) as Data },
-        ( 0x7000, _,      _,      _      ) => Instruction::AddBytesToRegister { register: (instr) , bytes: () }
+    let (upper, lower) = (instr & 0xF000, instr & 0x0FFF);
+    
+    // A struct to do so might be needed in the near future!
+    // Deconstructing 
+    // Imagine this as 
+    
+    //   O      [   0,     HEAD
+    //   |          1,     NECK
+    //  /|\
+    //   |          2,     BODY
+    //   | 
+    //   /\         3 ]    TAIL
+    //  /  \     
+
+    let (head, neck, body, tail) = (
+        (instr & 0xF000 >> 12) as u8,
+        (instr & 0x0F00 >> 8) as u8,
+        (instr & 0x00F0 >> 4) as u8,
+        (instr & 0x000F) as u8,
+    );
+
+    let bodytail = (instr & 0xFF) as u8; 
+
+    match (upper, lower) {
+        ( 0x0   , 0xE0  ) => Instruction::Cls,
+
+        ( 0x0   , 0xEE  ) => Instruction::Ret,
+
+        ( 0x1000, _     ) => Instruction::Jump { location: lower },
+
+        ( 0x2000, _     ) => Instruction::Call { location: lower },
+
+        ( 0x3000, lower ) => {
+            Instruction::SkipEqualRegisterBytes { register_index: neck, bytes: bodytail }
+        }
+
+        ( 0x4000, lower ) => {
+            Instruction::SkipNotEqualRegisterBytes { register_index: neck as u8, bytes: bodytail }
+        }
+
+        ( 0x5000, _) => {
+            if tail != 0 {
+                Instruction::Invalid
+            } else {
+                Instruction::SkipEqualRegisterRegister { register_x: neck, register_y: body }
+            }
+        }
+
+        ( 0x6000, lower ) => {
+            let (register, value) = (lower & 0xF00, lower & 0xFF);
+            Instruction::SetRegisterToBytes { register: (register >> 8) as u8, bytes: value as u8 }
+        }
+
+        (0x7000, lower ) => {
+            let (register, value) = (lower & 0xF00, lower & 0xFF);
+            Instruction::AddBytesToRegister { register: (register >> 8) as u8, bytes: value as u8 }
+        }
+
+        (0x8000, lower ) => {
+            match ((lower & 0xF00 >> 8) as u8, (lower & 0xF0 >> 4) as u8, (lower & 0xF) as u8) {
+                (regx, regy, 0) => {
+                    Instruction::SetRegisterToRegister { register_x: regx, register_y: regy }
+                }
+
+                (regx, regy, 1) => {
+                    Instruction::BitwiseOr { register_x: regx, register_y: regy }
+                }
+
+                (reg)
+                ()
+                _ => Instruction::Invalid
+            }
+        }
         _ => Instruction::Invalid
     }
 }
