@@ -1,5 +1,3 @@
-use std::ops::Add;
-
 use crate::types::AddressLong;
 use crate::types::Data;
 
@@ -27,7 +25,7 @@ pub enum Instruction {
     SkipEqualRegisterRegister {register_x: Data, register_y: Data },
 
     /// 6xkk - LD Vx, byte
-    LoadBytesToRegister { register: Data, bytes: Data },
+    SetRegisterToBytes { register: Data, bytes: Data },
 
     /// 7xkk - ADD Vx, byte
     AddBytesToRegister { register: Data, bytes: Data },
@@ -117,9 +115,18 @@ pub fn subdivide_instr(val: AddressLong) -> (AddressLong, AddressLong, AddressLo
     )
 }
 
-pub fn decode(instr : u8) -> Instruction {
-    let instr = subdivide_instr(instr as AddressLong);
+pub fn decode(instr : u16) -> Instruction {
+    let instr = subdivide_instr(instr);
     match instr {
+        ( 0x0000, 0x0000, 0x00E0, 0x0000 ) => Instruction::Cls,
+        ( 0x0000, 0x0000, 0x00E0, 0x000E ) => Instruction::Ret,
+        ( 0x1000, _,      _,      _      ) => Instruction::Jump { location: instr.1 + instr.2 + instr.3 },
+        ( 0x2000, _,      _,      _      ) => Instruction::Call { location: instr.1 + instr.2 + instr.3 },
+        ( 0x3000, _,      _,      _      ) => Instruction::SkipEqualRegisterBytes { register_index: (instr.1 >> 8) as Data, bytes: (instr.2 + instr.3) as Data },
+        ( 0x4000, _,      _,      _      ) => Instruction::SkipNotEqualRegisterBytes { register_index: (instr.1 >> 8) as Data, bytes: (instr.2 + instr.3) as Data },
+        ( 0x5000, _,      _,      0x0000 ) => Instruction::SkipEqualRegisterRegister { register_x: (instr.1 >> 8) as Data, register_y: (instr.2 >> 4) as Data },
+        ( 0x6000, _,      _,      _      ) => Instruction::SetRegisterToBytes { register: (instr.1 >> 8) as Data, bytes: (instr.2 + instr.3) as Data },
+        ( 0x7000, _,      _,      _      ) => Instruction::AddBytesToRegister { register: (instr) , bytes: () }
         _ => Instruction::Invalid
     }
 }
