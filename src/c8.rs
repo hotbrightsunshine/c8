@@ -1,3 +1,4 @@
+use crate::decoder;
 use crate::io::{Screen, self};
 use crate::mem::{Memory};
 
@@ -43,8 +44,9 @@ impl Chip {
     } 
 
     pub fn cycle(&mut self) {
-        // fetch
-        let read = self.read2();
+        // fetch + decode
+        let read = decoder::decode(self.read2());
+
         // execute 
         self.execute(read);
     }
@@ -70,7 +72,47 @@ impl Chip {
         &mem_vec.vector[(from as usize) .. ((from+(amount as u16)) as usize)]
     }
 
-    fn execute(&mut self, instr: AddressLong) {
+    fn execute(&mut self, instr: decoder::Instruction){
+        match instr {
+            decoder::Instruction::Cls => todo!(),
+            decoder::Instruction::Ret => todo!(),
+            decoder::Instruction::Jump { location } => todo!(),
+            decoder::Instruction::Call { location } => todo!(),
+            decoder::Instruction::SkipEqualRegisterBytes { register_index, bytes } => todo!(),
+            decoder::Instruction::SkipNotEqualRegisterBytes { register_index, bytes } => todo!(),
+            decoder::Instruction::SkipEqualRegisterRegister { register_x, register_y } => todo!(),
+            decoder::Instruction::SetRegisterToBytes { register, bytes } => todo!(),
+            decoder::Instruction::AddBytesToRegister { register, bytes } => todo!(),
+            decoder::Instruction::SetRegisterToRegister { register_x, register_y } => todo!(),
+            decoder::Instruction::BitwiseOr { register_x, register_y } => todo!(),
+            decoder::Instruction::BitwiseAnd { register_x, register_y } => todo!(),
+            decoder::Instruction::BitwiseXor { register_x, register_y } => todo!(),
+            decoder::Instruction::AddRegisterToRegister { register_x, register_y } => todo!(),
+            decoder::Instruction::SubtractRegisterToRegister { register_x, register_y } => todo!(),
+            decoder::Instruction::LeastSignificantBit { register } => todo!(),
+            decoder::Instruction::SubtractInversed { register_x, register_y } => todo!(),
+            decoder::Instruction::MostSignificantBit { register } => todo!(),
+            decoder::Instruction::SkipNotEqualRegisterRegister { register_x, register_y } => todo!(),
+            decoder::Instruction::SetI { value } => todo!(),
+            decoder::Instruction::JumpToLocationPlusZeroRegister { address } => todo!(),
+            decoder::Instruction::Random { register, value } => todo!(),
+            decoder::Instruction::Display { register_x, register_y, nibble } => todo!(),
+            decoder::Instruction::SkipIfKeyIsPressed { register } => todo!(),
+            decoder::Instruction::SkipIfKeyIsNotPressed { register } => todo!(),
+            decoder::Instruction::SetRegisterToDelayTimer { register } => todo!(),
+            decoder::Instruction::WaitForKey { register } => todo!(),
+            decoder::Instruction::SetDelayTimer { register } => todo!(),
+            decoder::Instruction::SetSoundTimer { register } => todo!(),
+            decoder::Instruction::AddRegisterToI { register } => todo!(),
+            decoder::Instruction::SetIToLocationOfSprite { register } => todo!(),
+            decoder::Instruction::StoreBCD { register } => todo!(),
+            decoder::Instruction::StoreRegistersToMemory { to_register } => todo!(),
+            decoder::Instruction::LoadRegistersFromMemory { to_register } => todo!(),
+            decoder::Instruction::Invalid => todo!(),
+        }
+    }
+
+    fn execute_old(&mut self, instr: AddressLong) {
         match instr {
             // Clear screen 
             0x00E0 => {self.screen.clear();}
