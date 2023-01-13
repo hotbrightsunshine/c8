@@ -98,10 +98,13 @@ pub enum Instruction {
     SetIToLocationOfSprite { register: Data },
 
     /// Fx33 - LD B, Vx
+    StoreBCD { register: Data },
     
     /// Fx55 - LD [I], Vx
+    StoreRegistersToMemory { to_register: Data },
     
     /// Fx65 - LD Vx, [I]
+    LoadRegistersFromMemory { to_register: Data },
 
     Invalid
 }
@@ -197,7 +200,9 @@ pub fn decode(instr : u16) -> Instruction {
                 0x18 => Instruction::SetSoundTimer { register: neck },
                 0x1E => Instruction::AddRegisterToI { register: neck },
                 0x29 => Instruction::SetIToLocationOfSprite { register: neck },
-                
+                0x33 => Instruction::StoreBCD { register: neck },
+                0x55 => Instruction::StoreRegistersToMemory { to_register: neck },
+                0x65 => Instruction::LoadRegistersFromMemory { to_register: neck },
                 _ => Instruction::Invalid
             }
         }
