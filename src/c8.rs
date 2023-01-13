@@ -1,3 +1,5 @@
+use rand::Rng;
+
 use crate::decoder;
 use crate::io::{Screen, self};
 use crate::mem::{Memory};
@@ -74,28 +76,152 @@ impl Chip {
 
     fn execute(&mut self, instr: decoder::Instruction){
         match instr {
-            decoder::Instruction::Cls => todo!(),
-            decoder::Instruction::Ret => todo!(),
-            decoder::Instruction::Jump { location } => todo!(),
-            decoder::Instruction::Call { location } => todo!(),
-            decoder::Instruction::SkipEqualRegisterBytes { register_index, bytes } => todo!(),
-            decoder::Instruction::SkipNotEqualRegisterBytes { register_index, bytes } => todo!(),
-            decoder::Instruction::SkipEqualRegisterRegister { register_x, register_y } => todo!(),
-            decoder::Instruction::SetRegisterToBytes { register, bytes } => todo!(),
-            decoder::Instruction::AddBytesToRegister { register, bytes } => todo!(),
-            decoder::Instruction::SetRegisterToRegister { register_x, register_y } => todo!(),
-            decoder::Instruction::BitwiseOr { register_x, register_y } => todo!(),
-            decoder::Instruction::BitwiseAnd { register_x, register_y } => todo!(),
-            decoder::Instruction::BitwiseXor { register_x, register_y } => todo!(),
-            decoder::Instruction::AddRegisterToRegister { register_x, register_y } => todo!(),
-            decoder::Instruction::SubtractRegisterToRegister { register_x, register_y } => todo!(),
-            decoder::Instruction::LeastSignificantBit { register } => todo!(),
-            decoder::Instruction::SubtractInversed { register_x, register_y } => todo!(),
-            decoder::Instruction::MostSignificantBit { register } => todo!(),
-            decoder::Instruction::SkipNotEqualRegisterRegister { register_x, register_y } => todo!(),
-            decoder::Instruction::SetI { value } => todo!(),
-            decoder::Instruction::JumpToLocationPlusZeroRegister { address } => todo!(),
-            decoder::Instruction::Random { register, value } => todo!(),
+            decoder::Instruction::Cls => { self.screen.clear(); },
+            decoder::Instruction::Ret => {                
+                let val = self.stack.pop().expect("unable to pop values from stack");
+                self.pc = val; 
+            },
+
+            decoder::Instruction::Jump { location } => { self.pc = location; },
+            decoder::Instruction::Call { location } => {
+                self.stack.push(self.pc);
+                self.pc = location;
+            },
+
+            decoder::Instruction::SkipEqualRegisterBytes { register_index, bytes } => {
+                if *self.registers.get(register_index as usize).unwrap() == bytes {
+                    self.pc += 2;
+                }
+            },
+
+            decoder::Instruction::SkipNotEqualRegisterBytes { register_index, bytes } => {
+                if *self.registers.get(register_index as usize).unwrap() != bytes {
+                    self.pc += 2;
+                }
+            },
+
+            decoder::Instruction::SkipEqualRegisterRegister { register_x, register_y } => {
+                let register_x = self.registers.get(register_x as usize).unwrap();
+                let register_y = self.registers.get(register_y as usize).unwrap();
+                if register_x == register_y {
+                    self.pc += 2;
+                }
+            },
+
+            decoder::Instruction::SetRegisterToBytes { register, bytes } => {
+                *self.registers.get_mut(register as usize).unwrap() = bytes;
+            },
+
+            decoder::Instruction::AddBytesToRegister { register, bytes } => {
+                *self.registers.get_mut(register as usize).unwrap() += bytes;
+            },
+
+            decoder::Instruction::SetRegisterToRegister { register_x, register_y } => {
+                * self.registers.get_mut(register_x as usize).unwrap() = 
+                            * self.registers.get(register_y as usize).unwrap();
+            },
+
+            decoder::Instruction::BitwiseOr { register_x, register_y } => {
+                let regxval = *self.registers.get(register_x as usize).unwrap();
+                        let regyval = *self.registers.get(register_y as usize).unwrap();
+                        *self.registers.get_mut(register_x as usize).unwrap() = 
+                            regxval | regyval;
+            },
+
+            decoder::Instruction::BitwiseAnd { register_x, register_y } => {
+                let regxval = *self.registers.get(register_x as usize).unwrap();
+                        let regyval = *self.registers.get(register_y as usize).unwrap();
+                        *self.registers.get_mut(register_x as usize).unwrap() = 
+                            regxval & regyval;
+            },
+
+            decoder::Instruction::BitwiseXor { register_x, register_y } => {
+                let regxval = *self.registers.get(register_x as usize).unwrap();
+                        let regyval = *self.registers.get(register_y as usize).unwrap();
+                        *self.registers.get_mut(register_x as usize).unwrap() = 
+                            regxval ^ regyval;
+            },
+
+            decoder::Instruction::AddRegisterToRegister { register_x, register_y } => {
+                let regxval = *self.registers.get(register_x as usize).unwrap() as usize;
+                let regyval = *self.registers.get(register_y as usize).unwrap() as usize;
+                
+                let result = regxval + regyval;
+                if result > 0xFF {
+                    *self.registers.get_mut(register_x as usize).unwrap() = result as Data;
+                    *self.registers.get_mut(0xF as usize).unwrap() = (result - 0xFF) as Data;
+                } else {
+                    *self.registers.get_mut(register_y as usize).unwrap() = result as Data;
+                }
+            },
+
+            decoder::Instruction::SubtractRegisterToRegister { register_x, register_y } => {
+                let regxval = *self.registers.get(register_x as usize).unwrap() as usize;
+                let regyval = *self.registers.get(register_y as usize).unwrap() as usize;
+                
+                let result = if regxval > regyval {
+                    *self.registers.get_mut(0xF as usize).unwrap() = 1 as Data;
+                    (regxval - regyval) as Data
+                } else {
+                    *self.registers.get_mut(0xF as usize).unwrap() = 0 as Data;
+                    0 as Data
+                };
+
+                *self.registers.get_mut(register_x as usize).unwrap() = result;
+            },
+
+            decoder::Instruction::LeastSignificantBit { register } => {
+                let regxval = *self.registers.get(register as usize).unwrap() as usize;
+                if regxval % 2 == 1 {
+                    *self.registers.get_mut(0xF as usize).unwrap() = 1 as Data;
+                } else {
+                    *self.registers.get_mut(0xF as usize).unwrap() = 0 as Data;
+                }
+                *self.registers.get_mut(register as usize).unwrap() = (regxval / 2) as Data;
+            },
+
+            decoder::Instruction::SubtractInversed { register_x, register_y } => {
+                let regxval = *self.registers.get(register_x as usize).unwrap() as usize;
+                let regyval = *self.registers.get(register_y as usize).unwrap() as usize;
+                
+                let result = if regyval > regxval {
+                    *self.registers.get_mut(0xF as usize).unwrap() = 1 as Data;
+                    (regyval - regxval) as Data
+                } else {
+                    *self.registers.get_mut(0xF as usize).unwrap() = 0 as Data;
+                    0 as Data
+                };
+
+                *self.registers.get_mut(register_x as usize).unwrap() = result;
+            },
+
+            decoder::Instruction::MostSignificantBit { register } => {
+                let regxval = *self.registers.get(register as usize).unwrap() as usize;
+                if (regxval >> 7) == 0b1  {
+                    *self.registers.get_mut(0xF as usize).unwrap() = 1 as Data;
+                } else {
+                    *self.registers.get_mut(0xF as usize).unwrap() = 0 as Data;
+                }
+                *self.registers.get_mut(register as usize).unwrap() = (regxval * 2) as Data;
+            },
+
+            decoder::Instruction::SkipNotEqualRegisterRegister { register_x, register_y } => {
+                let register_x = self.registers.get(register_x as usize).unwrap();
+                let register_y = self.registers.get(register_y as usize).unwrap();
+                if register_x != register_y {
+                    self.pc += 2;
+                }
+            },
+            decoder::Instruction::SetI { value } => {
+                self.i = value;
+            },
+            decoder::Instruction::JumpToLocationPlusZeroRegister { address } => {
+                self.pc = address + (*self.registers.first().unwrap() as u16);
+            },
+            decoder::Instruction::Random { register, value } => {
+                let x :u8 = rand::thread_rng().gen_range(0..=255) & value;
+                *self.registers.get_mut(register as usize).unwrap() = x;
+            },
             decoder::Instruction::Display { register_x, register_y, nibble } => todo!(),
             decoder::Instruction::SkipIfKeyIsPressed { register } => todo!(),
             decoder::Instruction::SkipIfKeyIsNotPressed { register } => todo!(),
