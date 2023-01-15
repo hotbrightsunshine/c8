@@ -1,7 +1,7 @@
 use crate::types::AddressLong;
 use crate::types::Data;
 
-
+#[derive(Debug)]
 pub enum Instruction {
     /// 00E0 - CLS
     Cls,
@@ -125,11 +125,13 @@ pub fn decode(instr : u16) -> Instruction {
     //  /  \     
 
     let (head, neck, body, tail) = (
-        (instr & 0xF000 >> 12) as u8,
-        (instr & 0x0F00 >> 8) as u8,
-        (instr & 0x00F0 >> 4) as u8,
+        ((instr & 0xF000) >> 12) as u8,
+        ((instr & 0x0F00) >> 8) as u8,
+        ((instr & 0x00F0) >> 4) as u8,
         (instr & 0x000F) as u8,
     );
+
+    println!("({:x?}) => {:x?} {:x?} {:x?} {:x?}", instr, head, neck, body, tail);  
 
     let bodytail = (instr & 0xFF) as u8; 
 

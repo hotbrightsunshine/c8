@@ -49,7 +49,7 @@ impl Chip {
     pub fn cycle(&mut self) {
         // fetch + decode
         let read = decoder::decode(self.read2());
-
+        println!("Instruction: {:x?}", read);
         // execute 
         self.execute(read);
     }
