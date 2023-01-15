@@ -94,36 +94,11 @@ impl Screen {
         vec
     }
 
-    pub fn wait_for_key(&self) -> u8 {
-        // todo!
-        
-        loop {
-            let vec = self.window.get_keys_released();
-            for key in [
-                Key::Key1,
-                Key::Key2,
-                Key::Key3,
-                Key::Key4,
-                Key::Q,
-                Key::W,
-                Key::E,
-                Key::R,
-                Key::A,
-                Key::S,
-                Key::D,
-                Key::F,
-                Key::Z,
-                Key::X,
-                Key::C,
-                Key::V 
-            ] {
-                println!("keys: {:?}", vec);
-                if vec.contains(&key) {
-                    return key_to_u8(key);
-                }
-            }
-        }
-    }
+    pub fn get_keys(&self) {
+        println!("CIAO Keys: {:?}", self.window.get_keys());
+    }   
+    
+    
 }
 
 pub fn load(filepath: &str) -> Vec<Data> {

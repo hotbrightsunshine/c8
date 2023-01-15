@@ -1,3 +1,6 @@
+use std::thread;
+use std::time::Duration;
+
 use rand::Rng;
 
 use crate::decoder;
@@ -16,12 +19,13 @@ pub struct Chip {
         registers   : [Data; 16],
         stack       : Stack,
         memory      : Memory,
+        keys        : [Data; 16],
     pub screen      : Screen
 }
 
 impl Chip {
     pub fn new() -> Chip {
-        Chip { pc: 512, i: 0, sp: 0, delay_t: Timer::new(), sound_t: Timer::new(), registers: [0; 16], stack: Stack::new(), memory: Memory::new(), screen: Screen::new() }
+        Chip { pc: 512, i: 0, sp: 0, delay_t: Timer::new(), sound_t: Timer::new(), registers: [0; 16], stack: Stack::new(), memory: Memory::new(), screen: Screen::new(), keys: [0; 16] }
     }
 
     pub fn start(&mut self) {
@@ -249,8 +253,10 @@ impl Chip {
                 *self.registers.get_mut(register as usize).unwrap() = self.delay_t.get();
             },
             decoder::Instruction::WaitForKey { register } => {
-                let key = self.screen.wait_for_key(); // blocking
-                *self.registers.get_mut(register as usize).unwrap() = key
+                if self.keys.is_empty() {
+                    println!("è voto!");
+                    self.pc -= 1;
+                }
             },
             decoder::Instruction::SetDelayTimer { register } => {
                 self.delay_t.set(
