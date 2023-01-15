@@ -30,31 +30,27 @@ impl Memory {
             0xF0, 0x80, 0xF0, 0x80, 0xF0, // E
             0xF0, 0x80, 0xF0, 0x80, 0x80  // F
         ];
-        let first_address:u8 = 0x050;
-        for i in font {
-            self.write(font[i as usize], (first_address + i) as usize);
+
+        for i in 0..font.len() {
+            self.write(font[i], (0x1 + i));
         }
     }
 
+    pub fn get_font(&self, ch : u8) -> usize {
+        (0x1 * ch) as usize
+    }
+
     pub fn get(&self, index: usize) -> Result<Data, C8Err> {
-        if index < 512 {
-            Err(C8Err::MemoryUnaccessible)
-        } else {
-            match self.vector.get(index) {
-                Some(value) => Ok(*value),
-                None => Err(C8Err::MemoryUnaccessible)
-            }
+        match self.vector.get(index) {
+            Some(value) => Ok(*value),
+            None => Err(C8Err::MemoryUnaccessible)
         }
     }
 
     pub fn write(&mut self, v:Data, index:usize) {
-        if index < 512 {
-            panic!("mem unaccessible")
-        } else {
-            match self.vector.get_mut(index) {
-                Some(value) => *value = v,
-                None => panic!("mem unaccessible")
-            }
+        match self.vector.get_mut(index) {
+            Some(value) => *value = v,
+            None => panic!("mem unaccessible")
         }
     }
 }

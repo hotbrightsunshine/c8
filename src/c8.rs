@@ -265,7 +265,10 @@ impl Chip {
             decoder::Instruction::AddRegisterToI { register } => {
                 self.i += *self.registers.get(register as usize).unwrap() as u16;
             },
-            decoder::Instruction::SetIToLocationOfSprite { register } => todo!(),
+            decoder::Instruction::SetIToLocationOfSprite { register } => {
+                let ch = *self.registers.get(register as usize).unwrap();
+                self.i = self.memory.get_font(ch) as u16;
+            },
             decoder::Instruction::StoreBCD { register } => {
                 // Highly inspired by:
                 // https://github.com/taniarascia/chip8/blob/master/classes/CPU.js
@@ -280,8 +283,19 @@ impl Chip {
                 self.memory.write(b, (self.i + 1) as usize);
                 self.memory.write(c, (self.i + 2) as usize);
             },
-            decoder::Instruction::StoreRegistersToMemory { to_register } => todo!(),
-            decoder::Instruction::LoadRegistersFromMemory { to_register } => todo!(),
+            decoder::Instruction::StoreRegistersToMemory { to_register } => {
+                for i in 0..=(to_register as usize) {
+                    self.memory.write(
+                        *self.registers.get(i as usize).unwrap(),
+                        self.i as usize + i)
+                }
+            },
+            decoder::Instruction::LoadRegistersFromMemory { to_register } => {
+                for i in 0..=(to_register as usize) {
+                    *self.registers.get_mut(i).unwrap() = 
+                        self.memory.get(self.i as usize + i).unwrap()
+                }
+            },
             decoder::Instruction::Invalid => {
                 panic!("Invalid instruction");
             },
