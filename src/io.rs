@@ -19,7 +19,7 @@ impl Screen {
         window_options.scale = Scale::X16;
 
         let mut screen = Screen {
-            screen: [[true; WIDTH]; HEIGHT],
+            screen: [[false; WIDTH]; HEIGHT],
             window: Window::new(
                 "Test - ESC to exit",
                 WIDTH,
@@ -61,15 +61,17 @@ impl Screen {
         self.screen = [[false; WIDTH]; HEIGHT];
     }
 
+    /// This function allows to draw fonts on the screen.
     pub fn draw(&mut self, x: usize, y: usize, sprite: &[Data]) {
-        let sprite_cols : Vec<[bool; 8]> = sprite.iter().map(|x| -> [bool; 8] {Screen::u8_to_bools(x)}).collect();
-        
-        for i in 0..sprite.len() {
-            println!("{}, {}", i+y, x);
-            let col = &mut self.screen[i+y];
-            let to_paint = &mut col[x..x+8];
-            for (k, val) in (*to_paint).iter_mut().enumerate(){
-                *val = *sprite_cols.get(i).unwrap().get(k).unwrap();
+        // Converts the sprite from a list of numbers to a list of printable booleans.
+        let printable : Vec<[bool; 8]> = sprite.iter().map(|x| -> [bool; 8] {Screen::u8_to_bools(x)}).collect();
+    
+        // For each row and column in the printable sprite,
+        // Now print the cell at the coordinates (row + y) and (column + x)
+        for (row, printable_row) in printable.iter().enumerate() {
+            for (column, cell) in printable_row.iter().enumerate() {
+                println!("row + y: {}, column + x: {}", row + y, column + x);
+                self.set( *cell, column + x, row + y);
             }
         }
     }
@@ -83,7 +85,7 @@ impl Screen {
         for row in self.screen {
             for val in row {
                 if val {
-                    vec.push(0xFFFFFF);
+                    vec.push(0xFF0000);
                 } else {
                     vec.push(0);
                 }

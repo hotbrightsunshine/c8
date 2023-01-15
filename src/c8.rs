@@ -72,7 +72,7 @@ impl Chip {
     }
 
     fn read_sprite(from: AddressLong, mem_vec: &Memory, amount: Data) -> &[u8] {
-        &mem_vec.vector[(from as usize) .. ((from+(amount as u16)) as usize)]
+        &mem_vec.vector[(from as usize) .. (from as usize + amount as usize)]
     }
 
     fn execute(&mut self, instr: decoder::Instruction){
