@@ -19,7 +19,7 @@ impl Screen {
         window_options.scale = Scale::X16;
 
         let mut screen = Screen {
-            screen: [[false; WIDTH]; HEIGHT],
+            screen: [[true; WIDTH]; HEIGHT],
             window: Window::new(
                 "Test - ESC to exit",
                 WIDTH,
@@ -98,7 +98,7 @@ impl Screen {
         // todo!
         
         loop {
-            let vec = self.window.get_keys();
+            let vec = self.window.get_keys_released();
             for key in [
                 Key::Key1,
                 Key::Key2,
@@ -117,6 +117,7 @@ impl Screen {
                 Key::C,
                 Key::V 
             ] {
+                println!("keys: {:?}", vec);
                 if vec.contains(&key) {
                     return key_to_u8(key);
                 }
